@@ -1,10 +1,10 @@
 ﻿using AlatereTracker.AQL;
 using AlatereTracker.AQL.Actions;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection.Emit;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace AlatereTracker.Database
 {
@@ -15,12 +15,14 @@ namespace AlatereTracker.Database
             this.config = config;
         }
 
+        public Dictionary<string, EntityDescriptor> EntityDescriptors { get; private set; }
         private DBConfig config;
         private AQLInterpretator qlInterpretator;
+        private ActionHandler actionHandler;
 
-        private IEnumerable<EntityDescriptor> GetEntityDescriptors(IEnumerable<string> entities) 
+        private Dictionary<string, EntityDescriptor> GetEntityDescriptors(IEnumerable<string> entities) 
         {
-            List<EntityDescriptor> entityDescriptors = new List<EntityDescriptor>();
+            Dictionary<string, EntityDescriptor> entityDescriptors = new Dictionary<string, EntityDescriptor>();
 
             foreach (string entityName in entities) 
             {
@@ -31,7 +33,7 @@ namespace AlatereTracker.Database
                     EntityDescriptor descriptor = 
                         JsonConvert.DeserializeObject<EntityDescriptor>(jsonDescriptor);
 
-                    entityDescriptors.Add(descriptor);
+                    entityDescriptors.Add(descriptor.Name, descriptor);
                 }
             }
 
@@ -40,26 +42,56 @@ namespace AlatereTracker.Database
 
         public void Initialize() 
         {
-            IEnumerable<EntityDescriptor> entityDescriptors = this.GetEntityDescriptors(config.Entities);
-
-            qlInterpretator = new AQLInterpretator(entityDescriptors);
+            EntityDescriptors = this.GetEntityDescriptors(config.Entities);
+            qlInterpretator = new AQLInterpretator(EntityDescriptors);
+            actionHandler = new ActionHandler(this);
         }
 
-        public object Query(string query) 
+        public IEnumerable<Dictionary<string, string>> GetDataFrom(EntityDescriptor descriptor) 
         {
-            IEnumerable<BaseAction> actions = this.qlInterpretator.Interpretate(query);
+            string path = Path.Combine(this.config.DataPath, descriptor.Name + DBConfig.DATA_EXTENSION);
 
-            object result = new object();
+            using (StreamReader sr = new StreamReader(path)) 
+                return JsonConvert.DeserializeObject<IEnumerable<Dictionary<string, string>>>(sr.ReadToEnd());
+        }
 
-            foreach (BaseAction action in actions) 
-            {                
-                if (action is SelectAction) 
+        public Dictionary<string, List<object>> GetDataByColumns(IEnumerable<Dictionary<string, string>> data) 
+        {
+            if (data.Count() == 0) return default;
+
+            Dictionary<string, List<object>> newData = new Dictionary<string, List<object>>();
+
+            foreach(string column in data.First().Keys) 
+            {
+                newData[column] = new List<object>();
+            }
+
+            foreach (Dictionary<string, string> row in data) 
+            {
+                foreach (string column in row.Keys) 
                 {
-                    
+                    newData[column].Add(row[column]);
                 }
             }
 
-            return result;
+            return newData;
+        }
+
+        public Task<Dictionary<string, ColumnDescriptor>> Query(string query) 
+        {
+            return Task.Run(() => {
+                IEnumerable<BaseAction> actions = this.qlInterpretator.Interpretate(query);
+
+                Dictionary<string, ColumnDescriptor> result = new Dictionary<string, ColumnDescriptor>();
+
+                foreach (BaseAction action in actions)
+                {
+                    if (action is SelectAction) result = actionHandler.Handle(action as SelectAction);
+                    
+                }
+
+                return result;
+            });
         }
 
         

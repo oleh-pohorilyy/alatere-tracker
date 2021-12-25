@@ -50,7 +50,9 @@
     <Compile Include="AQL\Actions\SelectAction.cs" />
     <Compile Include="AQL\AQLInterpretator.cs" />
     <Compile Include="AQL\MapIntent.cs" />
-    <Compile Include="AQL\Token.cs" />
+    <Compile Include="Database\ActionHandler.cs" />
+    <Compile Include="Database\ColumnDescriptor.cs" />
+    <Compile Include="Database\Converter\TypeConverter.cs" />
     <Compile Include="Database\DB.cs" />
     <Compile Include="Database\DBConfig.cs" />
     <Compile Include="Database\DBManager.cs" />

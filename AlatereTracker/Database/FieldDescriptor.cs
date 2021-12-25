@@ -1,9 +1,12 @@
-﻿using Newtonsoft.Json;
+﻿using AlatereTracker.Database.Converter;
+using Newtonsoft.Json;
+using System;
 
 namespace AlatereTracker.Database
 {
     public struct FieldDescriptor
     {
-        public string Type;
+        [JsonConverter(typeof(TypeConverter))]
+        public Type Type;
     }
 }
