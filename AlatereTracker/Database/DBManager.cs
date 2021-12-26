@@ -3,7 +3,6 @@ using AlatereTracker.AQL.Actions;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace AlatereTracker.Database
@@ -47,47 +46,28 @@ namespace AlatereTracker.Database
             actionHandler = new ActionHandler(this);
         }
 
-        public IEnumerable<Dictionary<string, string>> GetDataFrom(EntityDescriptor descriptor) 
+        public Table GetDataFrom(EntityDescriptor descriptor)
         {
             string path = Path.Combine(this.config.DataPath, descriptor.Name + DBConfig.DATA_EXTENSION);
 
-            using (StreamReader sr = new StreamReader(path)) 
-                return JsonConvert.DeserializeObject<IEnumerable<Dictionary<string, string>>>(sr.ReadToEnd());
+            using (StreamReader sr = new StreamReader(path))
+            {
+                var data = JsonConvert.DeserializeObject<IEnumerable<Dictionary<string, string>>>(sr.ReadToEnd());
+                return new Table(descriptor, data);
+            }
         }
 
-        public Dictionary<string, List<object>> GetDataByColumns(IEnumerable<Dictionary<string, string>> data) 
-        {
-            if (data.Count() == 0) return default;
-
-            Dictionary<string, List<object>> newData = new Dictionary<string, List<object>>();
-
-            foreach(string column in data.First().Keys) 
-            {
-                newData[column] = new List<object>();
-            }
-
-            foreach (Dictionary<string, string> row in data) 
-            {
-                foreach (string column in row.Keys) 
-                {
-                    newData[column].Add(row[column]);
-                }
-            }
-
-            return newData;
-        }
-
-        public Task<Dictionary<string, ColumnDescriptor>> Query(string query) 
+        public Task<Table> Query(string query) 
         {
             return Task.Run(() => {
                 IEnumerable<BaseAction> actions = this.qlInterpretator.Interpretate(query);
 
-                Dictionary<string, ColumnDescriptor> result = new Dictionary<string, ColumnDescriptor>();
+                Table result = null;
 
                 foreach (BaseAction action in actions)
                 {
                     if (action is SelectAction) result = actionHandler.Handle(action as SelectAction);
-                    
+                    else if(action is WhereAction) result = actionHandler.Handle(action as WhereAction, result);
                 }
 
                 return result;

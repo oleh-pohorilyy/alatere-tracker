@@ -2,6 +2,7 @@
 using AlatereTracker.Database;
 using AlatereTracker.QLI;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace AlatereTracker.AQL
@@ -34,8 +35,17 @@ namespace AlatereTracker.AQL
                 switch (pair.Key) 
                 {
                     case nameof(SelectAction):
+                        string table = groups["table"].Value;
                         string[] columns = groups["columns"].Value.Replace(" ", "").Split(',');
-                        actions.Add(new SelectAction(groups["table"].Value, columns));
+
+                        if (columns.Contains("*"))
+                        {
+                            columns = entities[table].Fields.Keys.ToArray();
+                        }
+
+                        actions.Add(new SelectAction(table, columns));
+                        break;
+                    case nameof(WhereAction):
                         break;
                     default: break;
                 }

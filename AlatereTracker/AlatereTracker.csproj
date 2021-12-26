@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="AQL\Actions\BaseAction.cs" />
     <Compile Include="AQL\Actions\SelectAction.cs" />
+    <Compile Include="AQL\Actions\WhereAction.cs" />
     <Compile Include="AQL\AQLInterpretator.cs" />
     <Compile Include="AQL\MapIntent.cs" />
     <Compile Include="Database\ActionHandler.cs" />
@@ -58,6 +59,7 @@
     <Compile Include="Database\DBManager.cs" />
     <Compile Include="Database\EntityDescriptor.cs" />
     <Compile Include="Database\FieldDescriptor.cs" />
+    <Compile Include="Database\Table.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QLI\IQLInterpretator.cs" />

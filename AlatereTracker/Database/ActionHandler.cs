@@ -16,24 +16,41 @@ namespace AlatereTracker.Database
 
         private readonly DBManager dbManager;
 
-        public Dictionary<string, ColumnDescriptor> Handle(SelectAction action) 
+        public Table Handle(SelectAction action) 
         {
             EntityDescriptor entity = this.dbManager.EntityDescriptors[action.From];
 
-            var fields = action.Fields.Select(f => (name: f, descriptor: entity.Fields[f]));
+            Table data = this.dbManager.GetDataFrom(entity);
 
-            var data = this.dbManager.GetDataFrom(entity);
-
-            var dataByColumns = this.dbManager.GetDataByColumns(data);
-
-            var result = new Dictionary<string, ColumnDescriptor>();
-
-            foreach (var field in fields)
+            if (action.Fields.Length == data.Columns.Count()) 
             {
-                result.Add(field.name, new ColumnDescriptor(field.descriptor.Type, dataByColumns[field.name]));
+                return data;
             }
 
-            return result;
+            IEnumerable<object[]> selectedData = data.Select(action.Fields);
+
+            return new Table(entity, selectedData);
+        }
+
+        public Table Handle(WhereAction action, Table data)
+        {
+            Table table = new Table(data);
+
+            foreach (var row in data.Rows) 
+            {
+                foreach (var filter in action.Filters) 
+                {
+                    int columnIndex = data.GetColumnIndex(filter.Key);
+                    Filter filterFn = filter.Value;
+
+                    if (filterFn(row[columnIndex])) continue;
+
+                    table.Remove(row);
+                    break;
+                }
+            }
+
+            return table;
         }
     }
 }

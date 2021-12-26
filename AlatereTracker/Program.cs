@@ -16,12 +16,18 @@ namespace AlatereTracker
             Console.WriteLine(db.Config);
 
             while (true) {
-                var result = await db.Manager.Query("select date value,reason from mood");
-                
-                foreach (var r in result)
+                try
                 {
-                    Console.WriteLine(r.Key + "\n" + string.Join("\n", r.Value.Data));
+                    Table result = await db.Manager.Query(Console.ReadLine());
+                    foreach (var row in result.Rows)
+                    {
+                        Console.WriteLine(string.Join("\n", row.Select(v => v ?? "NULL")));
+                    }
                 }
+                catch {
+                    Console.WriteLine("ERROR!");
+                }
+                
 
                 Console.ReadKey();
                 Console.Clear();
